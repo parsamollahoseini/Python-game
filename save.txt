@@ -1,0 +1,2 @@
+Monster has killed the hero previously
+Hero hep has killed a monster and gained 3 stars.
