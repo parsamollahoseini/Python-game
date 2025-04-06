@@ -118,11 +118,11 @@ def save_game(winner, hero_name="", num_stars=0, monsters_killed=0):
         elif winner == "Monster":
             file.write("Monster has killed the hero previously\n")
 
-    # Save the number of monsters killed
+    # Save the number of monsters killed explicitly
     with open("save_game.txt", "w") as file:
         file.write(f"{num_stars}\n")
         file.write(f"{monsters_killed}\n")
-    print("Game saved!")
+    print("Game saved! Monsters killed:", monsters_killed)
 
 # Load game function
 def load_game():
@@ -142,14 +142,21 @@ def load_game():
         # Load from the new save_game.txt file
         monsters_killed = 0
         num_stars = 0
-        with open("save_game.txt", "r") as file:
-            num_stars = int(file.readline().strip())
-            monsters_killed = int(file.readline().strip())
-            print(f"Loaded game stats: Stars: {num_stars}, Monsters killed: {monsters_killed}")
+        try:
+            with open("save_game.txt", "r") as file:
+                lines = file.readlines()
+                if len(lines) >= 2:
+                    num_stars = int(lines[0].strip())
+                    monsters_killed = int(lines[1].strip())
+                    print(f"Loaded game stats: Stars: {num_stars}, Monsters killed: {monsters_killed}")
+        except (FileNotFoundError, ValueError, IndexError) as e:
+            print(f"Error loading game stats: {e}")
+            num_stars = 0
+            monsters_killed = 0
 
         return last_game, num_stars, monsters_killed
-    except FileNotFoundError:
-        print("No saved game found in save_game.txt.")
+    except Exception as e:
+        print(f"General error in load_game: {e}")
         return None, 0, 0
 
 def adjust_combat_strength(hero, monster):

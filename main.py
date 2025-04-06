@@ -32,6 +32,7 @@ def main():
     # Load a saved game if available
     _, num_stars, loaded_monsters_killed = load_game()
     monsters_killed = loaded_monsters_killed
+    print(f"Starting game with {monsters_killed} monsters previously killed.")
 
     # Loop to get valid input for Hero and Monster's Combat Strength
     i = 0
@@ -40,33 +41,31 @@ def main():
     while input_invalid and i in range(5):
         print("    ------------------------------------------------------------------")
         print("    |", end="    ")
-        combat_strength = input("Enter your combat Strength (1-6): ")
-        print("    |", end="    ")
-        m_combat_strength = input("Enter the monster's combat Strength (1-6): ")
+        try:
+            combat_strength = input("Enter your combat Strength (1-6): ")
+            print("    |", end="    ")
+            m_combat_strength = input("Enter the monster's combat Strength (1-6): ")
 
-        # Validate input: Check if the string inputted is numeric
-        if (not combat_strength.isnumeric()) or (not m_combat_strength.isnumeric()):
-            # If one of the inputs are invalid, print error message and halt
+            # Validate input by converting to integers (will raise ValueError if not numeric)
+            combat_strength_int = int(combat_strength)
+            m_combat_strength_int = int(m_combat_strength)
+
+            # Check range
+            if (combat_strength_int not in range(1, 7)) or (m_combat_strength_int not in range(1, 7)):
+                print("    |    Enter a valid integer between 1 and 6 only")
+                i = i + 1
+                continue
+            else:
+                input_invalid = False
+                combat_strength = combat_strength_int
+                m_combat_strength = m_combat_strength_int
+                break
+        except ValueError:
             print("    |    One or more invalid inputs. Player needs to enter integer numbers for Combat Strength    |")
             i = i + 1
             continue
 
-        # Note: Now safe to cast combat_strength to integer
-        # Validate input: Check if the string inputted
-        elif (int(combat_strength) not in range(1, 7)) or (int(m_combat_strength)) not in range(1, 7):
-            print("    |    Enter a valid integer between 1 and 6 only")
-            i = i + 1
-            continue
-
-        else:
-            input_invalid = False
-            break
-
     if not input_invalid:
-        input_invalid = False
-        combat_strength = int(combat_strength)
-        m_combat_strength = int(m_combat_strength)
-
         # Create hero and monster objects
         hero = Hero(combat_strength)
         monster = Monster(m_combat_strength)
@@ -294,6 +293,7 @@ def main():
         if monster.health_points <= 0:
             winner = "Hero"
             monsters_killed += 1
+            print(f"You killed a monster! Total monsters killed now: {monsters_killed}")
         else:
             winner = "Monster"
 
@@ -302,20 +302,23 @@ def main():
         input_invalid = True
         while input_invalid and tries in range(5):
             print("    |", end="    ")
-
-            hero_name = input("Enter your Hero's name (in two words)")
-            name = hero_name.split()
-            if len(name) != 2:
-                print("    |    Please enter a name with two parts (separated by a space)")
-                tries += 1
-            else:
-                if not name[0].isalpha() or not name[1].isalpha():
-                    print("    |    Please enter an alphabetical name")
+            try:
+                hero_name = input("Enter your Hero's name (in two words)")
+                name = hero_name.split()
+                if len(name) != 2:
+                    print("    |    Please enter a name with two parts (separated by a space)")
                     tries += 1
                 else:
-                    short_name = name[0][0:2:1] + name[1][0:1:1]
-                    print("    |    I'm going to call you " + short_name + " for short")
-                    input_invalid = False
+                    if not name[0].isalpha() or not name[1].isalpha():
+                        print("    |    Please enter an alphabetical name")
+                        tries += 1
+                    else:
+                        short_name = name[0][0:2:1] + name[1][0:1:1]
+                        print("    |    I'm going to call you " + short_name + " for short")
+                        input_invalid = False
+            except Exception as e:
+                print(f"    |    Error with hero name: {e}")
+                tries += 1
 
         if not input_invalid:
             stars_display = "*" * num_stars
