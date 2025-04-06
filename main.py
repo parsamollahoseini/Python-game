@@ -3,7 +3,7 @@ import os
 import platform
 from hero import Hero
 from monster import Monster
-from function import clear_screen, dream_levels, sword_art, good_ending, use_loot, collect_loot, inception_dream, save_game, load_game, adjust_combat_strength
+from function import clear_screen, dream_levels, sword_art, good_ending, use_loot, collect_loot, inception_dream, save_game, load_game, adjust_combat_strength, get_available_pets
 
 # Print OS and Python version information
 print(f"Operating System: {os.name}")
@@ -182,6 +182,18 @@ def main():
         monster.combat_strength += min(6, monster.combat_strength + monster_powers[power_roll])
         print(f"    |    The monster's combat strength is now {monster.combat_strength} using the {power_roll} magic power")
 
+        available_pets = get_available_pets(hero)
+
+        if available_pets:
+            print("\nYou found a companion!")
+            for i, pet in enumerate(available_pets):
+                print(f"{i + 1}. {pet['name']} - {pet['effect']}")
+            choice = int(input("Choose your companion: ")) - 1
+            companion = available_pets[choice]
+            print(f"{companion['name']} has joined you!")
+        else:
+            companion = None
+
         # Lab Week 06 - Question 6
         num_dream_lvls = -1 # Initialize the number of dream levels
         while (num_dream_lvls < 0 or num_dream_lvls > 3):
@@ -224,6 +236,12 @@ def main():
 
                 # Hero attacks
                 damage = hero.hero_attacks()
+
+                if companion and companion["name"] == "Wolf":
+                    if random.randint(1, 6) > 3:  
+                        print("Wolf strikes with you! +2 damage!")
+                        damage += companion["power"]
+                
                 print(f"    |    Player's weapon ({damage}) ---> Monster ({monster.health_points})")
 
                 if damage >= monster.health_points:
@@ -241,7 +259,15 @@ def main():
                     print("    |    The monster strikes!!!")
 
                     # Monster attacks
-                    damage = monster.monster_attacks()
+                    if companion and companion["name"] == "Hawk":
+                        if random.random() < companion["chance"]:  # Nested condition
+                            print("🦅 Hawk dodges the attack for you!")
+                            damage = 0
+                        else:
+                            damage = monster.monster_attacks()
+                    else:
+                        damage = monster.monster_attacks()
+
                     print(f"    |    Monster's Claw ({damage}) ---> Player ({hero.health_points})")
 
                     if damage >= hero.health_points:

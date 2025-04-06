@@ -173,3 +173,11 @@ def adjust_combat_strength(hero, monster):
             print("    |    ... Increasing the hero's combat strength since you lost last time")
         else:
             print("    |    ... Based on your previous game, neither the hero nor the monster's combat strength will be increased")
+
+def get_available_pets(hero):
+    pets = [
+        {"name": "Wolf", "type": "melee", "effect": "extra_damage", "power": 2},
+        {"name": "Hawk", "type": "aerial", "effect": "block_damage", "chance": 0.3}
+    ]
+    # List comprehension: filter based on hero's strength
+    return [pet for pet in pets if hero.combat_strength >= 3]
