@@ -46,13 +46,38 @@ def good_ending():
     """Display the good ending message."""
     print("Congratulations! You have completed the game with the good ending!")
 
-def use_loot(belt, hero):
+def use_loot(belt, hero, weather_system=None):
     good_loot_options = ["Health Potion", "Leather Boots"]
     bad_loot_options = ["Poison Potion"]
+    weather_protection = {
+        "Raincoat": ["rainy", "stormy"],
+        "Sunglasses": ["sunny", "hot"],
+        "Heat Cloak": ["cold"],
+        "Wind Barrier": ["windy", "foggy"]
+    }
 
     print("    |    !!You see a monster in the distance! So you quickly use your first item:")
     first_item = belt.pop(0)
-    if first_item in good_loot_options:
+
+    # Check if it's a weather protection item
+    if weather_system and first_item in weather_protection:
+        protected_weathers = weather_protection[first_item]
+        current_weather = weather_system.current_weather[0]
+
+        if current_weather in protected_weathers:
+            print(f"    |    You used {first_item} to protect yourself from the {current_weather} weather!")
+            # Reverse negative weather effects for hero
+            if current_weather in ["rainy", "stormy", "foggy", "hot", "cold", "windy"]:
+                effects = weather_system.get_weather_effects()
+                hero.combat_strength = max(1, hero.combat_strength - effects["combat_mod"])
+                hero.health_points = max(1, hero.health_points - effects["health_mod"])
+                print(f"    |    Your protection restores your stats: Combat {hero.combat_strength}, Health {hero.health_points}")
+                return belt
+
+        print(f"    |    You used {first_item} but it's not helpful in the current weather")
+
+    # Original loot logic
+    elif first_item in good_loot_options:
         # Store the health value explicitly before and after change
         current_health = hero.health_points
         hero.health_points = min(20, (current_health + 2))
@@ -64,6 +89,7 @@ def use_loot(belt, hero):
         print(f"    |    You used {first_item} to hurt your health to {hero.health_points}")
     else:
         print(f"    |    You used {first_item} but it's not helpful")
+
     return belt
 
 def collect_loot(loot_options, belt):
@@ -173,3 +199,28 @@ def adjust_combat_strength(hero, monster):
             print("    |    ... Increasing the hero's combat strength since you lost last time")
         else:
             print("    |    ... Based on your previous game, neither the hero nor the monster's combat strength will be increased")
+
+
+def describe_weather(weather_system):
+    """Display current weather conditions and effects."""
+    weather = weather_system.current_weather
+    print("    ------------------------------------------------------------------")
+    print(f"    |    WEATHER REPORT: {weather[0].upper()}")
+    print(f"    |    {weather[1]}")
+    print(weather_system.weather_ascii_art())
+
+    effects = weather_system.get_weather_effects()
+    print(f"    |    Combat Modifier: {effects['combat_mod']} | Health Modifier: {effects['health_mod']}")
+
+    # Use list comprehension to generate weather tips
+    weather_tips = [tip for condition, tip in [
+        ("rainy", "The rain makes weapons slippery, be careful!"),
+        ("stormy", "Monsters gain power from the storm's energy."),
+        ("hot", "Stay hydrated to maintain your health."),
+        ("cold", "Keep moving to prevent your joints from stiffening."),
+        ("perfect", "This exceptional weather grants you additional strength!")
+    ] if weather[0] == condition]
+
+    if weather_tips:
+        print(f"    |    TIP: {weather_tips[0]}")
+    print("    ------------------------------------------------------------------")

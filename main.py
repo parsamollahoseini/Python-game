@@ -3,7 +3,8 @@ import os
 import platform
 from hero import Hero
 from monster import Monster
-from function import clear_screen, dream_levels, sword_art, good_ending, use_loot, collect_loot, inception_dream, save_game, load_game, adjust_combat_strength
+from function import clear_screen, dream_levels, sword_art, good_ending, use_loot, collect_loot, inception_dream, save_game, load_game, adjust_combat_strength, describe_weather
+from weather import WeatherSystem
 
 # Print OS and Python version information
 print(f"Operating System: {os.name}")
@@ -11,12 +12,14 @@ print(f"Python Version: {platform.python_version()}")
 
 # Global variables
 monsters_killed = 0
+weather_system = WeatherSystem()
 
 # Define the Weapons
 weapons = ["Fist", "Knife", "Club", "Gun", "Bomb", "Nuclear Bomb"]
 
-# Define the Loot
+# Define the Loot - separated regular loot from weather gear
 loot_options = ["Health Potion", "Poison Potion", "Secret Note", "Leather Boots", "Flimsy Gloves"]
+weather_gear = ["Raincoat", "Sunglasses", "Heat Cloak", "Wind Barrier", "Weather Orb"]
 belt = []
 
 # Define the Monster's Powers
@@ -26,8 +29,25 @@ monster_powers = {
     "Super Hearing": 6
 }
 
+# Function to collect weather gear
+def collect_weather_gear(weather_gear_options):
+    ascii_image_weather = """
+             .-.
+          .-(    ).
+         (___.__)__)
+           /  |  \\
+          /  /|\\  \\
+         '-------'
+          """
+    print(ascii_image_weather)
+    gear_roll = random.randint(0, len(weather_gear_options)-1)
+    gear = weather_gear_options[gear_roll]
+    print(f"    |    You found: {gear}")
+    return gear
+
 def main():
     global monsters_killed
+    global weather_system
 
     # Load a saved game if available
     _, num_stars, loaded_monsters_killed = load_game()
@@ -69,6 +89,21 @@ def main():
         # Create hero and monster objects
         hero = Hero(combat_strength)
         monster = Monster(m_combat_strength)
+
+        # Check the weather and apply effects
+        print("    ------------------------------------------------------------------")
+        print("    |", end="    ")
+        input("Check the weather forecast (Press enter)")
+        describe_weather(weather_system)
+
+        # Apply weather effects to both characters
+        hero_combat_mod, hero_health_mod = weather_system.apply_weather_effects(hero, "hero")
+        monster_combat_mod, monster_health_mod = weather_system.apply_weather_effects(monster, "monster")
+
+        print(f"    |    Weather affects your combat strength by {hero_combat_mod} and health by {hero_health_mod}")
+        print(f"    |    Your combat strength is now {hero.combat_strength} and health is {hero.health_points}")
+        print(f"    |    Weather affects the monster's combat strength by {monster_combat_mod} and health by {monster_health_mod}")
+        print(f"    |    Monster's combat strength is now {monster.combat_strength} and health is {monster.health_points}")
 
         # Roll for weapon
         print("    |", end="    ")
@@ -148,6 +183,38 @@ def main():
         # Use Loot
         belt_local = use_loot(belt_local, hero)
 
+        # Add separate weather gear collection
+        print("    ------------------------------------------------------------------")
+        print("    |    !!You notice a strange weather device on the ground!!")
+        print("    |", end="    ")
+        input("Roll for weather protection gear (enter)")
+
+        # Get weather gear
+        player_weather_gear = collect_weather_gear(weather_gear)
+
+        # Check if the gear helps with current weather
+        weather_protection = {
+            "Raincoat": ["rainy", "stormy"],
+            "Sunglasses": ["sunny", "hot"],
+            "Heat Cloak": ["cold"],
+            "Wind Barrier": ["windy", "foggy"],
+            "Weather Orb": ["rainy", "stormy", "sunny", "hot", "cold", "windy", "foggy"]  # Works for all
+        }
+
+        current_weather = weather_system.current_weather[0]
+        if current_weather in weather_protection.get(player_weather_gear, []):
+            print(f"    |    Your {player_weather_gear} protects you from the {current_weather} weather!")
+            # Reverse negative weather effects for hero if there are any
+            effects = weather_system.get_weather_effects()
+            if effects["combat_mod"] < 0:
+                hero.combat_strength = max(1, hero.combat_strength - effects["combat_mod"])
+                print(f"    |    Your protection restores your combat strength to {hero.combat_strength}")
+            if effects["health_mod"] < 0:
+                hero.health_points = max(1, hero.health_points - effects["health_mod"])
+                print(f"    |    Your protection restores your health to {hero.health_points}")
+        else:
+            print(f"    |    Your {player_weather_gear} isn't useful in the current {current_weather} weather.")
+
         print("    ------------------------------------------------------------------")
         print("    |", end="    ")
         input("Analyze the roll (Press enter)")
@@ -204,6 +271,37 @@ def main():
                 print("Invalid input. Please enter a number between 0-3.")
                 num_dream_lvls = -1
             print("num_dream_lvls: ", num_dream_lvls)
+
+        # Weather can change before combat
+        print("    ------------------------------------------------------------------")
+        print("    |", end="    ")
+        input("The weather suddenly shifts as you prepare for battle! (Press enter)")
+        weather_system.generate_weather()
+        describe_weather(weather_system)
+
+        # Apply new weather effects
+        hero_combat_mod, hero_health_mod = weather_system.apply_weather_effects(hero, "hero")
+        monster_combat_mod, monster_health_mod = weather_system.apply_weather_effects(monster, "monster")
+
+        print(f"    |    The new weather affects your combat strength by {hero_combat_mod} and health by {hero_health_mod}")
+        print(f"    |    Your combat strength is now {hero.combat_strength} and health is {hero.health_points}")
+        print(f"    |    The new weather affects the monster's combat strength by {monster_combat_mod} and health by {monster_health_mod}")
+        print(f"    |    Monster's combat strength is now {monster.combat_strength} and health is {monster.health_points}")
+
+        # Check if the previously found weather gear helps with the new weather
+        current_weather = weather_system.current_weather[0]
+        if current_weather in weather_protection.get(player_weather_gear, []):
+            print(f"    |    Your {player_weather_gear} protects you from the new {current_weather} weather!")
+            # Reverse negative weather effects for hero if there are any
+            effects = weather_system.get_weather_effects()
+            if effects["combat_mod"] < 0:
+                hero.combat_strength = max(1, hero.combat_strength - effects["combat_mod"])
+                print(f"    |    Your protection restores your combat strength to {hero.combat_strength}")
+            if effects["health_mod"] < 0:
+                hero.health_points = max(1, hero.health_points - effects["health_mod"])
+                print(f"    |    Your protection restores your health to {hero.health_points}")
+        else:
+            print(f"    |    Your {player_weather_gear} isn't useful in the new {current_weather} weather.")
 
         # Fight Sequence
         # Loop while the monster and the player are alive. Call fight sequence functions
@@ -322,10 +420,20 @@ def main():
 
         if not input_invalid:
             stars_display = "*" * num_stars
+
+            # Weather bonus for final score
+            weather_bonus = 0
+            if weather_system.current_weather[0] == "perfect":
+                weather_bonus = 1
+                print("    |    You get a bonus star for fighting in perfect weather!")
+
+            final_stars = min(5, num_stars + weather_bonus)
+            stars_display = "*" * final_stars
+
             print(f"    |    Hero {short_name} gets <{stars_display}> stars")
 
             # Save the game with the updated monsters_killed count
-            save_game(winner, hero_name=short_name, num_stars=num_stars, monsters_killed=monsters_killed)
+            save_game(winner, hero_name=short_name, num_stars=final_stars, monsters_killed=monsters_killed)
 
             print(f"Total monsters killed (all games): {monsters_killed}")
 
