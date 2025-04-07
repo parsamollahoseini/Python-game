@@ -224,3 +224,11 @@ def describe_weather(weather_system):
     if weather_tips:
         print(f"    |    TIP: {weather_tips[0]}")
     print("    ------------------------------------------------------------------")
+
+def get_available_pets(hero):
+    pets = [
+        {"name": "Wolf", "type": "melee", "effect": "extra_damage", "power": 2},
+        {"name": "Hawk", "type": "aerial", "effect": "block_damage", "chance": 0.3}
+    ]
+    # List comprehension: filter based on hero's strength
+    return [pet for pet in pets if hero.combat_strength >= 3]
