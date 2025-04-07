@@ -56,6 +56,10 @@ def use_loot(belt, hero, weather_system=None):
         "Wind Barrier": ["windy", "foggy"]
     }
 
+    if not belt:
+        print("    |    Your belt is empty.")
+        return belt
+
     print("    |    !!You see a monster in the distance! So you quickly use your first item:")
     first_item = belt.pop(0)
 
@@ -88,9 +92,62 @@ def use_loot(belt, hero, weather_system=None):
         hero.health_points = max(0, (current_health - 2))
         print(f"    |    You used {first_item} to hurt your health to {hero.health_points}")
     else:
-        print(f"    |    You used {first_item} but it's not helpful")
-
+        print(f"    |    You used {first_item} but it's not helpful right now.")
     return belt
+
+def check_crafting(hero, belt):
+    """Checks if the player can craft Sturdy Gloves and prompts them."""
+    print("    ------------------------------------------------------------------")
+    print("    |    Checking materials for crafting...")
+    if "Flimsy Gloves" in belt and "Scrap Metal" in belt:
+        print("    |    You have 'Flimsy Gloves' and 'Scrap Metal'.")
+        while True:
+            choice = input("    |    Craft 'Sturdy Gloves' (+1 Combat Strength)? (y/n): ").lower()
+            if choice == 'y':
+                # Remove ingredients
+                belt.remove("Flimsy Gloves")
+                belt.remove("Scrap Metal")
+                # Add crafted item
+                belt.append("Sturdy Gloves")
+                # Apply effect
+                hero.combat_strength += 1
+                print(f"    |    Crafted 'Sturdy Gloves'! Your Combat Strength is now {hero.combat_strength}.")
+                # Re-sort belt after crafting
+                belt.sort()
+                print("    |    Your belt: ", belt)
+                break
+            elif choice == 'n':
+                print("    |    You decided not to craft.")
+                break
+            else:
+                print("    |    Invalid input. Please enter 'y' or 'n'.")
+    else:
+        print("    |    You don't have the required materials ('Flimsy Gloves' and 'Scrap Metal') to craft anything right now.")
+
+    # Optional: Ask if player wants to use a potion before fight (similar to old use_loot)
+    # This part is optional, depends if you want to keep potion usage here
+    if "Health Potion" in belt:
+         while True:
+            choice = input("    |    Use 'Health Potion' before the fight? (y/n): ").lower()
+            if choice == 'y':
+                belt.remove("Health Potion")
+                current_health = hero.health_points
+                hero.health_points = min(20, (current_health + 2))
+                print(f"    |    Used 'Health Potion'. Health is now {hero.health_points}.")
+                belt.sort()
+                print("    |    Your belt: ", belt)
+                break
+            elif choice == 'n':
+                print("    |    Saved 'Health Potion'.")
+                break
+            else:
+                print("    |    Invalid input. Please enter 'y' or 'n'.")
+
+    if "Poison Potion" in belt: # Probably shouldn't offer to use this!
+        print("    |    You have a 'Poison Potion'... better save that.")
+
+    return belt # Return the potentially modified belt
+
 
 def collect_loot(loot_options, belt):
     ascii_image3 = """
@@ -109,8 +166,12 @@ def collect_loot(loot_options, belt):
               @@@@@@@@@@@@          
               """
     print(ascii_image3)
-    loot_roll = random.choice(range(1, len(loot_options) + 1))
-    loot = loot_options.pop(loot_roll - 1)
+    # Ensure loot_options is not empty before choosing
+    if not loot_options:
+        print("    |    No more loot options available!")
+        return loot_options, belt
+    loot_roll = random.choice(range(len(loot_options))) # Use index directly
+    loot = loot_options.pop(loot_roll)
     belt.append(loot)
     print("    |    Your belt: ", belt)
     return loot_options, belt
@@ -138,47 +199,74 @@ def inception_dream(num_dream_lvls):
 
 # Save game function
 def save_game(winner, hero_name="", num_stars=0, monsters_killed=0):
-    with open("save.txt", "a") as file:
-        if winner == "Hero":
-            file.write(f"Hero {hero_name} has killed a monster and gained {num_stars} stars.\n")
-        elif winner == "Monster":
-            file.write("Monster has killed the hero previously\n")
+    # Append result to history file
+    try:
+        with open("save.txt", "a") as file:
+            if winner == "Hero":
+                file.write(f"Hero {hero_name} has killed a monster and gained {num_stars} stars.\n")
+            elif winner == "Monster":
+                file.write("Monster has killed the hero previously\n")
+    except IOError as e:
+        print(f"Error writing to save.txt: {e}")
 
-    # Save the number of monsters killed explicitly
-    with open("save_game.txt", "w") as file:
-        file.write(f"{num_stars}\n")
-        file.write(f"{monsters_killed}\n")
-    print("Game saved! Monsters killed:", monsters_killed)
+    # Overwrite current game state file
+    try:
+        with open("save_game.txt", "w") as file:
+            file.write(f"{num_stars}\n")
+            file.write(f"{monsters_killed}\n")
+        print("Game saved! Monsters killed:", monsters_killed)
+    except IOError as e:
+        print(f"Error writing to save_game.txt: {e}")
+
 
 # Load game function
 def load_game():
-    try:
-        # Load from the original save file
-        last_game = None
-        try:
-            with open("save.txt", "r") as file:
-                print("    |    Loading from saved file ...")
-                lines = file.readlines()
-                if lines:
-                    last_game = lines[-1].strip()
-                    print(last_game)
-        except FileNotFoundError:
-            print("No previous game found in save.txt. Starting fresh.")
+    last_game = None
+    num_stars = 0
+    monsters_killed = 0
 
-        # Load from the new save_game.txt file
-        monsters_killed = 0
-        num_stars = 0
-        try:
-            with open("save_game.txt", "r") as file:
-                lines = file.readlines()
-                if len(lines) >= 2:
+    # Load history from save.txt
+    try:
+        with open("save.txt", "r") as file:
+            print("    |    Loading history from save.txt ...")
+            lines = file.readlines()
+            if lines:
+                last_game = lines[-1].strip()
+                print(f"    |    Last game result: {last_game}")
+            else:
+                 print("    |    save.txt is empty.")
+    except FileNotFoundError:
+        print("    |    save.txt not found. Starting fresh history.")
+    except IOError as e:
+        print(f"    |    Error reading save.txt: {e}")
+
+
+    # Load current state from save_game.txt
+    try:
+        with open("save_game.txt", "r") as file:
+            print("    |    Loading state from save_game.txt ...")
+            lines = file.readlines()
+            if len(lines) >= 2:
+                try:
                     num_stars = int(lines[0].strip())
                     monsters_killed = int(lines[1].strip())
-                    print(f"Loaded game stats: Stars: {num_stars}, Monsters killed: {monsters_killed}")
-        except (FileNotFoundError, ValueError, IndexError) as e:
-            print(f"Error loading game stats: {e}")
-            num_stars = 0
-            monsters_killed = 0
+                    print(f"    |    Loaded game stats: Stars: {num_stars}, Monsters killed: {monsters_killed}")
+                except ValueError:
+                     print("    |    Error parsing stats in save_game.txt. Using defaults.")
+                     num_stars = 0
+                     monsters_killed = 0
+            else:
+                print("    |    save_game.txt is incomplete. Using defaults.")
+                num_stars = 0
+                monsters_killed = 0
+    except FileNotFoundError:
+        print("    |    save_game.txt not found. Starting fresh state.")
+        num_stars = 0
+        monsters_killed = 0
+    except IOError as e:
+        print(f"    |    Error reading save_game.txt: {e}")
+        num_stars = 0
+        monsters_killed = 0
 
         return last_game, num_stars, monsters_killed
     except Exception as e:
@@ -187,16 +275,24 @@ def load_game():
 
 def adjust_combat_strength(hero, monster):
     # Lab Week 06 - Question 5 - Load the game
-    last_game, _, _ = load_game()
+    last_game, num_stars_loaded, _ = load_game() # Use loaded stars directly
     if last_game:
-        if "Hero" in last_game and "gained" in last_game:
-            num_stars = int(last_game.split()[-2])
-            if num_stars > 3:
-                print("    |    ... Increasing the monster's combat strength since you won so easily last time")
-                monster.combat_strength += 1
+        # Check if the last game line indicates a hero win with stars
+        if "Hero" in last_game and "gained" in last_game and "stars" in last_game:
+            try:
+                # Extract stars from the string if needed, otherwise use num_stars_loaded
+                # Example assumes num_stars_loaded is reliable from save_game.txt
+                if num_stars_loaded >= 3: # Adjusted logic: win easily = 3 stars
+                    print(f"    |    ... You won with {num_stars_loaded} stars last time. Increasing monster's combat strength.")
+                    monster.combat_strength = min(6, monster.combat_strength + 1) # Ensure not exceeding max
+                else:
+                    print(f"    |    ... You won with {num_stars_loaded} stars last time. No adjustment.")
+            except (ValueError, IndexError):
+                 print("    |    ... Could not parse stars from last game history. No adjustment.")
+
         elif "Monster has killed the hero" in last_game:
-            hero.combat_strength += 1
-            print("    |    ... Increasing the hero's combat strength since you lost last time")
+            print("    |    ... The monster won last time. Increasing hero's combat strength.")
+            hero.combat_strength = min(6, hero.combat_strength + 1) # Ensure not exceeding max
         else:
             print("    |    ... Based on your previous game, neither the hero nor the monster's combat strength will be increased")
 

@@ -6,6 +6,8 @@ from monster import Monster
 from function import clear_screen, dream_levels, sword_art, good_ending, use_loot, collect_loot, inception_dream, save_game, load_game, adjust_combat_strength, describe_weather
 from weather import WeatherSystem
 from function import clear_screen, dream_levels, sword_art, good_ending, use_loot, collect_loot, inception_dream, save_game, load_game, adjust_combat_strength, get_available_pets
+# Import check_crafting and remove use_loot if no longer needed elsewhere (keeping it for now)
+from function import clear_screen, dream_levels, sword_art, good_ending, use_loot, collect_loot, inception_dream, save_game, load_game, adjust_combat_strength, check_crafting
 
 # Print OS and Python version information
 print(f"Operating System: {os.name}")
@@ -179,11 +181,26 @@ def main():
 
         print("    |    You're super neat, so you organize your belt alphabetically:")
         belt_local.sort()
-        print("    |    Your belt: ", belt_local)
+        print("    |    Your belt (after random loot): ", belt_local)
 
-        # Use Loot
-        belt_local = use_loot(belt_local, hero)
+        # --- Start: Ensure crafting materials are present for demonstration ---
+        print("    |    (DEBUG: Ensuring crafting materials 'Flimsy Gloves' and 'Scrap Metal' are present for demo)")
+        if "Flimsy Gloves" not in belt_local:
+            belt_local.append("Flimsy Gloves")
+            print("    |    (DEBUG: Added missing 'Flimsy Gloves')")
+        if "Scrap Metal" not in belt_local:
+            belt_local.append("Scrap Metal")
+            print("    |    (DEBUG: Added missing 'Scrap Metal')")
+        # Re-sort if items were added
+        belt_local.sort()
+        print("    |    Your belt (after ensuring materials): ", belt_local)
+        # --- End: Ensure crafting materials ---
 
+        # Check for crafting opportunities instead of automatically using loot
+        belt_local = check_crafting(hero, belt_local)
+
+        # The check_crafting function now handles the separator line and potential item usage prompts
+        # print("    ------------------------------------------------------------------") # Removed this line as check_crafting adds its own separator
         # Add separate weather gear collection
         print("    ------------------------------------------------------------------")
         print("    |    !!You notice a strange weather device on the ground!!")
