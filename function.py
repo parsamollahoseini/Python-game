@@ -267,11 +267,11 @@ def load_game():
         print(f"    |    Error reading save_game.txt: {e}")
         num_stars = 0
         monsters_killed = 0
-
-        return last_game, num_stars, monsters_killed
     except Exception as e:
         print(f"General error in load_game: {e}")
         return None, 0, 0
+
+    return last_game, num_stars, monsters_killed  # Correct indentation
 
 def adjust_combat_strength(hero, monster):
     # Lab Week 06 - Question 5 - Load the game
